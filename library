@@ -1,0 +1,193 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Define structure for Book
+typedef struct {
+    int id;
+    char title[50];
+    char author[50];
+    int copies;
+} Book;
+
+// Function declarations
+void addBook();
+void displayBooks();
+void searchBook();
+void deleteBook();
+void saveBookToFile(Book *book);
+void loadBookFromFile(int id, Book *book);
+void deleteBookFromFile(int id);
+void menu();
+
+// Main function
+int main() {
+    int choice;
+
+    while (1) {
+        menu();
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                addBook();
+                break;
+            case 2:
+                displayBooks();
+                break;
+            case 3:
+                searchBook();
+                break;
+            case 4:
+                deleteBook();
+                break;
+            case 5:
+                printf("Exiting the program. Goodbye!\n");
+                exit(0);
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+// Display menu
+void menu() {
+    printf("\nLibrary Management System\n");
+    printf("1. Add Book\n");
+    printf("2. Display All Books\n");
+    printf("3. Search Book by ID\n");
+    printf("4. Delete Book by ID\n");
+    printf("5. Exit\n");
+}
+
+// Function to add a new book
+void addBook() {
+    Book book;
+    printf("Enter Book ID: ");
+    scanf("%d", &book.id);
+    printf("Enter Book Title: ");
+    scanf(" %[^\n]", book.title);
+    printf("Enter Author Name: ");
+    scanf(" %[^\n]", book.author);
+    printf("Enter Number of Copies: ");
+    scanf("%d", &book.copies);
+
+    saveBookToFile(&book);
+
+    printf("Book added successfully!\n");
+}
+
+// Function to display all books
+void displayBooks() {
+    FILE *file = fopen("books.dat", "rb");
+    if (!file) {
+        printf("Error opening file or no books available.\n");
+        return;
+    }
+
+    Book book;
+    printf("\nAvailable Books:\n");
+    printf("ID\tTitle\t\t\tAuthor\t\t\tCopies\n");
+    printf("------------------------------------------------------------\n");
+
+    while (fread(&book, sizeof(Book), 1, file)) {
+        printf("%d\t%-20s\t%-20s\t%d\n", book.id, book.title, book.author, book.copies);
+    }
+
+    fclose(file);
+}
+
+// Function to search for a book by ID
+void searchBook() {
+    int id;
+    Book book;
+
+    printf("Enter Book ID to search: ");
+    scanf("%d", &id);
+
+    loadBookFromFile(id, &book);
+
+    if (book.id == -1) {
+        printf("Book not found.\n");
+    } else {
+        printf("\nBook Details:\n");
+        printf("ID: %d\n", book.id);
+        printf("Title: %s\n", book.title);
+        printf("Author: %s\n", book.author);
+        printf("Copies: %d\n", book.copies);
+    }
+}
+
+// Function to delete a book by ID
+void deleteBook() {
+    int id;
+    printf("Enter Book ID to delete: ");
+    scanf("%d", &id);
+
+    deleteBookFromFile(id);
+    printf("Book deleted successfully (if existed).\n");
+}
+
+// Function to save a book to a file
+void saveBookToFile(Book *book) {
+    FILE *file = fopen("books.dat", "ab+");
+    if (!file) {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    fwrite(book, sizeof(Book), 1, file);
+    fclose(file);
+}
+
+// Function to load a book from a file by ID
+void loadBookFromFile(int id, Book *book) {
+    FILE *file = fopen("books.dat", "rb");
+    if (!file) {
+        printf("Error opening file.\n");
+        book->id = -1;
+        return;
+    }
+
+    Book temp;
+    book->id = -1;
+
+    while (fread(&temp, sizeof(Book), 1, file)) {
+        if (temp.id == id) {
+            *book = temp;
+            break;
+        }
+    }
+
+    fclose(file);
+}
+
+// Function to delete a book from a file by ID
+void deleteBookFromFile(int id) {
+    FILE *file = fopen("books.dat", "rb");
+    FILE *tempFile = fopen("temp.dat", "wb");
+
+    if (!file || !tempFile) {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    Book book;
+
+    while (fread(&book, sizeof(Book), 1, file)) {
+        if (book.id != id) {
+            fwrite(&book, sizeof(Book), 1, tempFile);
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    // Replace old file with updated temp file
+    remove("books.dat");
+    rename("temp.dat", "books.dat");
+}
